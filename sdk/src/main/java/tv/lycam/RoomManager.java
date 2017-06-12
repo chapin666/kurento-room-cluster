@@ -1,5 +1,7 @@
 package tv.lycam;
 
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +21,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+
 
 public class RoomManager {
 
@@ -29,7 +32,12 @@ public class RoomManager {
     private RoomHandler roomHandler;
     private KurentoClientProvider kcProvider;
 
-    private final ConcurrentMap<String, Room> rooms = new ConcurrentHashMap<String, Room>();
+
+    private final HazelcastInstance hazelcastInstance;
+
+    // Room set
+    // TODO
+    private final ConcurrentMap<String, Room> rooms;
 
     private volatile boolean closed = false;
 
@@ -44,6 +52,10 @@ public class RoomManager {
         super();
         this.roomHandler = roomHandler;
         this.kcProvider = kcProvider;
+
+
+        this.hazelcastInstance = Hazelcast.newHazelcastInstance();
+        this.rooms = hazelcastInstance.getMap("rooms");
     }
 
     /**

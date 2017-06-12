@@ -1,6 +1,8 @@
 package tv.lycam;
 
 import com.google.gson.JsonArray;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.kurento.commons.ConfigFileManager;
 import org.kurento.jsonrpc.JsonUtils;
 import org.kurento.jsonrpc.internal.server.config.JsonRpcConfiguration;
@@ -111,7 +113,6 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     public RoomJsonRpcHandler roomHandler() {
         return new RoomJsonRpcHandler(userControl(), notificationService());
     }
-
 
 
     @Override

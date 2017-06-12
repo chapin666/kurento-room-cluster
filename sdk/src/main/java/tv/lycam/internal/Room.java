@@ -1,5 +1,8 @@
 package tv.lycam.internal;
 
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.nio.serialization.DataSerializable;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,6 +10,8 @@ import tv.lycam.api.RoomHandler;
 import tv.lycam.exception.RoomException;
 import tv.lycam.exception.RoomException.Code;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,14 +24,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by chengbin on 2017/6/7.
  */
-public class Room {
+public class Room implements DataSerializable {
+
     public static final int ASYNC_LATCH_TIMEOUT = 30;
 
     private final static Logger log = LoggerFactory.getLogger(Room.class);
 
+    // participants set
+    // TODO
     private final ConcurrentMap<String, Participant> participants =
             new ConcurrentHashMap<String, Participant>();
-    private final String name;
+
+
+    private String name;
 
     private MediaPipeline pipeline;
     private CountDownLatch pipelineLatch = new CountDownLatch(1);
@@ -45,6 +55,10 @@ public class Room {
     private boolean destroyKurentoClient;
 
     private final ConcurrentHashMap<String, String> filterStates = new ConcurrentHashMap<>();
+
+
+    public Room() {}
+
 
     public Room(String roomName, KurentoClient kurentoClient, RoomHandler roomHandler,
                 boolean destroyKurentoClient) {
@@ -321,5 +335,30 @@ public class Room {
         for (Participant participant : participants.values()) {
             roomHandler.updateFilter(getName(), participant, filterId, newState);
         }
+    }
+
+
+    @Override
+    public void writeData(ObjectDataOutput out) throws IOException {
+        out.writeUTF(name);
+        out.writeObject(kurentoClient);
+        //out.writeObject(roomHandler);
+    }
+
+    @Override
+    public void readData(ObjectDataInput in) throws IOException {
+        this.name = in.readUTF();
+        this.kurentoClient = in.readObject();
+        //this.roomHandler = in.readObject();
+    }
+
+    @Override
+    public String toString() {
+        return "Room{" +
+                "name='" + name + '\'' +
+                ", pipeline=" + pipeline +
+                ", pipelineLatch=" + pipelineLatch +
+                ", roomHandler=" + roomHandler +
+                '}';
     }
 }

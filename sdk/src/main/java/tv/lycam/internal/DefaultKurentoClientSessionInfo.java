@@ -1,11 +1,17 @@
 package tv.lycam.internal;
 
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.nio.serialization.DataSerializable;
 import tv.lycam.api.KurentoClientSessionInfo;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * Created by chengbin on 2017/6/9.
  */
-public class DefaultKurentoClientSessionInfo implements KurentoClientSessionInfo {
+public class DefaultKurentoClientSessionInfo implements KurentoClientSessionInfo, DataSerializable {
 
     private String participantId;
     private String roomName;
@@ -33,4 +39,17 @@ public class DefaultKurentoClientSessionInfo implements KurentoClientSessionInfo
         this.roomName = roomName;
     }
 
+
+
+    @Override
+    public void writeData(ObjectDataOutput out) throws IOException {
+        out.writeUTF(this.participantId);
+        out.writeUTF(roomName);
+    }
+
+    @Override
+    public void readData(ObjectDataInput in) throws IOException {
+        this.participantId = in.readUTF();
+        this.roomName = in.readUTF();
+    }
 }

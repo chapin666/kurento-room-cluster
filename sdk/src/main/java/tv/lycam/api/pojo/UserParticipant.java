@@ -1,9 +1,11 @@
 package tv.lycam.api.pojo;
 
+import java.io.Serializable;
+
 /**
  * Created by chengbin on 2017/6/7.
  */
-public class UserParticipant {
+public class UserParticipant implements Serializable {
 
     private String participantId;
     private String userName;

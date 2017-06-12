@@ -21,7 +21,8 @@ public class JsonRpcNotificationService implements UserNotificationService {
     // Logger
     private  static final Logger log = LoggerFactory.getLogger(JsonRpcNotificationService.class);
 
-
+    // sessions
+    // TODO
     private static ConcurrentHashMap<String, SessionWrapper> sessions = new ConcurrentHashMap<>();
 
     @Override

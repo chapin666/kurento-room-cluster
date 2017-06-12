@@ -39,6 +39,8 @@ public class Participant {
 
     private final ConcurrentMap<String, Filter> filters = new ConcurrentHashMap<>();
 
+    // Subscriber
+    // TODO
     private final ConcurrentMap<String, SubscriberEndpoint> subscribers =
             new ConcurrentHashMap<String, SubscriberEndpoint>();
 

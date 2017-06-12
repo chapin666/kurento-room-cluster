@@ -15,6 +15,8 @@ public class SessionWrapper {
     // Logger
     private  static final Logger log = LoggerFactory.getLogger(SessionWrapper.class);
 
+    // Session wrapper
+    // TODO
     private ConcurrentHashMap<Integer, Transaction> transactions = new ConcurrentHashMap<>();
     private Session session;
 
