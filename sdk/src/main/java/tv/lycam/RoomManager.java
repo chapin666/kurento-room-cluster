@@ -9,18 +9,20 @@ import tv.lycam.api.KurentoClientProvider;
 import tv.lycam.api.KurentoClientSessionInfo;
 import tv.lycam.api.MutedMediaType;
 import tv.lycam.api.RoomHandler;
+import tv.lycam.api.pojo.Room;
 import tv.lycam.api.pojo.UserParticipant;
 import tv.lycam.endpoint.SdpType;
 import tv.lycam.exception.RoomException;
 import tv.lycam.exception.RoomException.Code;
 import tv.lycam.internal.Participant;
-import tv.lycam.internal.Room;
+import tv.lycam.internal.RoomConnection;
 
 import javax.annotation.PreDestroy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 
@@ -34,10 +36,11 @@ public class RoomManager {
 
 
     private final HazelcastInstance hazelcastInstance;
+    private final ConcurrentMap<String, Room> roomDB;
 
-    // Room set
-    // TODO
-    private final ConcurrentMap<String, Room> rooms;
+    // RoomConnection set
+    private final ConcurrentMap<String, RoomConnection> rooms;
+
 
     private volatile boolean closed = false;
 
@@ -53,9 +56,10 @@ public class RoomManager {
         this.roomHandler = roomHandler;
         this.kcProvider = kcProvider;
 
+        this.rooms = new ConcurrentHashMap<>();
 
-        this.hazelcastInstance = Hazelcast.newHazelcastInstance();
-        this.rooms = hazelcastInstance.getMap("rooms");
+        this.hazelcastInstance = Hazelcast.getOrCreateHazelcastInstance(HazelcastConfiguration.config());
+        this.roomDB = this.hazelcastInstance.getMap("rooms");
     }
 
     /**
@@ -89,15 +93,15 @@ public class RoomManager {
         log.debug("Request [JOIN_ROOM] user={}, room={}, web={} " + "kcSessionInfo.room={} ({})",
                 userName, roomName, webParticipant,
                 kcSessionInfo != null ? kcSessionInfo.getRoomName() : null, participantId);
-        Room room = rooms.get(roomName);
+        RoomConnection room = rooms.get(roomName);
         if (room == null && kcSessionInfo != null) {
             createRoom(kcSessionInfo);
         }
         room = rooms.get(roomName);
         if (room == null) {
-            log.warn("Room '{}' not found");
+            log.warn("RoomConnection '{}' not found");
             throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE,
-                    "Room '" + roomName + "' was not found, must be created before '" + userName
+                    "RoomConnection '" + roomName + "' was not found, must be created before '" + userName
                             + "' can join");
         }
         if (room.isClosed()) {
@@ -105,8 +109,13 @@ public class RoomManager {
             throw new RoomException(Code.ROOM_CLOSED_ERROR_CODE,
                     "'" + userName + "' is trying to join room '" + roomName + "' but it is closing");
         }
+
+        //TODO
+        UserParticipant userParticipant = new UserParticipant(room.getName(), participantId, userName);
+        //
+
         Set<UserParticipant> existingParticipants = getParticipants(roomName);
-        room.join(participantId, userName, dataChannels, webParticipant);
+        room.join(userParticipant, dataChannels, webParticipant);
         return existingParticipants;
     }
 
@@ -124,7 +133,7 @@ public class RoomManager {
     public Set<UserParticipant> leaveRoom(String participantId) throws RoomException {
         log.debug("Request [LEAVE_ROOM] ({})", participantId);
         Participant participant = getParticipant(participantId);
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         String roomName = room.getName();
         if (room.isClosed()) {
             log.warn("'{}' is trying to leave from room '{}' but it is closing", participant.getName(),
@@ -145,7 +154,7 @@ public class RoomManager {
             log.debug("No more participants in room '{}', removing it and closing it", roomName);
             room.close();
             rooms.remove(roomName);
-            log.warn("Room '{}' removed and closed", roomName);
+            log.warn("RoomConnection '{}' removed and closed", roomName);
         }
         return remainingParticipants;
     }
@@ -192,7 +201,7 @@ public class RoomManager {
         SdpType sdpType = isOffer ? SdpType.OFFER : SdpType.ANSWER;
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
 
         participant.createPublishingEndpoint();
 
@@ -251,7 +260,7 @@ public class RoomManager {
 
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
 
         participant.createPublishingEndpoint();
 
@@ -282,7 +291,7 @@ public class RoomManager {
             throw new RoomException(Code.USER_NOT_STREAMING_ERROR_CODE,
                     "Participant '" + participant.getName() + "' is not streaming media");
         }
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         participant.unpublishMedia();
         room.cancelPublisher(participant);
     }
@@ -307,7 +316,7 @@ public class RoomManager {
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
 
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
 
         Participant senderParticipant = room.getParticipantByName(remoteName);
         if (senderParticipant == null) {
@@ -343,7 +352,7 @@ public class RoomManager {
         log.debug("Request [UNSUBSCRIBE] remoteParticipant={} ({})", remoteName, participantId);
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         Participant senderParticipant = room.getParticipantByName(remoteName);
         if (senderParticipant == null) {
             log.warn("PARTICIPANT {}: Requesting to unsubscribe from user {} "
@@ -504,7 +513,7 @@ public class RoomManager {
                 muteType, participantId);
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         Participant senderParticipant = room.getParticipantByName(remoteName);
         if (senderParticipant == null) {
             log.warn("PARTICIPANT {}: Requesting to mute streaming from {} "
@@ -535,7 +544,7 @@ public class RoomManager {
         log.debug("Request [UNMUTE_SUBSCRIBED] remoteParticipant={} ({})", remoteName, participantId);
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         Participant senderParticipant = room.getParticipantByName(remoteName);
         if (senderParticipant == null) {
             log.warn("PARTICIPANT {}: Requesting to unmute streaming from {} "
@@ -583,6 +592,11 @@ public class RoomManager {
         return closed;
     }
 
+
+    public RoomConnection getRoomConnection(String roomName) {
+        return rooms.get(roomName);
+    }
+
     /**
      * Returns all currently active (opened) rooms.
      *
@@ -601,14 +615,16 @@ public class RoomManager {
      * @throws RoomException in case the room doesn't exist
      */
     public Set<UserParticipant> getParticipants(String roomName) throws RoomException {
-        Room room = rooms.get(roomName);
+        Room room = roomDB.get(roomName);
         if (room == null) {
-            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "Room '" + roomName + "' not found");
+            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "RoomConnection '" + roomName + "' not found");
         }
-        Collection<Participant> participants = room.getParticipants();
-        Set<UserParticipant> userParts = new HashSet<UserParticipant>();
-        for (Participant p : participants) {
-            if (!p.isClosed()) {
+
+        Collection<UserParticipant> participants = room.getParticipants();
+        Set<UserParticipant> userParts = new HashSet<>();
+        for (UserParticipant userParticipant : participants) {
+            Participant p = getParticipant(userParticipant.getParticipantId());
+            if (p != null && !p.isClosed()) {
                 userParts.add(new UserParticipant(p.getId(), p.getName(), p.isStreaming()));
             }
         }
@@ -623,9 +639,9 @@ public class RoomManager {
      * @throws RoomException in case the room doesn't exist
      */
     public Set<UserParticipant> getPublishers(String roomName) throws RoomException {
-        Room r = rooms.get(roomName);
+        RoomConnection r = rooms.get(roomName);
         if (r == null) {
-            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "Room '" + roomName + "' not found");
+            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "RoomConnection '" + roomName + "' not found");
         }
         Collection<Participant> participants = r.getParticipants();
         Set<UserParticipant> userParts = new HashSet<UserParticipant>();
@@ -648,9 +664,9 @@ public class RoomManager {
      * @throws RoomException in case the room doesn't exist
      */
     public Set<UserParticipant> getSubscribers(String roomName) throws RoomException {
-        Room r = rooms.get(roomName);
+        RoomConnection r = rooms.get(roomName);
         if (r == null) {
-            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "Room '" + roomName + "' not found");
+            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "RoomConnection '" + roomName + "' not found");
         }
         Collection<Participant> participants = r.getParticipants();
         Set<UserParticipant> userParts = new HashSet<UserParticipant>();
@@ -678,7 +694,7 @@ public class RoomManager {
                     "No participant with id '" + participantId + "' was found");
         }
         Set<String> subscribedEndpoints = participant.getConnectedSubscribedEndpoints();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         Set<UserParticipant> userParts = new HashSet<UserParticipant>();
         for (String epName : subscribedEndpoints) {
             Participant p = room.getParticipantByName(epName);
@@ -707,7 +723,7 @@ public class RoomManager {
                     "Participant with id '" + participantId + "' is not a publisher yet");
         }
         Set<UserParticipant> userParts = new HashSet<UserParticipant>();
-        Room room = participant.getRoom();
+        RoomConnection room = participant.getRoom();
         String endpointName = participant.getName();
         for (Participant p : room.getParticipants()) {
             if (p.equals(participant)) {
@@ -752,22 +768,29 @@ public class RoomManager {
      */
     public void createRoom(KurentoClientSessionInfo kcSessionInfo) throws RoomException {
         String roomName = kcSessionInfo.getRoomName();
-        Room room = rooms.get(kcSessionInfo);
-        if (room != null) {
+        RoomConnection roomConnection = rooms.get(roomName);
+        if (roomConnection != null) {
             throw new RoomException(Code.ROOM_CANNOT_BE_CREATED_ERROR_CODE,
-                    "Room '" + roomName + "' already exists");
+                    "RoomConnection '" + roomName + "' already exists");
         }
         KurentoClient kurentoClient = kcProvider.getKurentoClient(kcSessionInfo);
 
-        room = new Room(roomName, kurentoClient, roomHandler, kcProvider.destroyWhenUnused());
+        //
+        Room room = new Room(roomName);
+        if (roomDB.get(roomName) == null) {
+            roomDB.put(roomName, room);
+        }
+        //
 
-        Room oldRoom = rooms.putIfAbsent(roomName, room);
+        roomConnection = new RoomConnection(room, kurentoClient, roomHandler, kcProvider.destroyWhenUnused());
+
+        RoomConnection oldRoom = rooms.putIfAbsent(roomName, roomConnection);
         if (oldRoom != null) {
-            log.warn("Room '{}' has just been created by another thread", roomName);
+            log.warn("RoomConnection '{}' has just been created by another thread", roomName);
             return;
             // throw new RoomException(
             // Code.ROOM_CANNOT_BE_CREATED_ERROR_CODE,
-            // "Room '"
+            // "RoomConnection '"
             // + roomName
             // + "' already exists (has just been created by another thread)");
         }
@@ -775,7 +798,7 @@ public class RoomManager {
         if (kurentoClient.getServerManager() != null) {
             kcName = kurentoClient.getServerManager().getName();
         }
-        log.warn("No room '{}' exists yet. Created one " + "using KurentoClient '{}'.", roomName,
+        log.debug("No room '{}' exists yet. Created one " + "using KurentoClient '{}'.", roomName,
                 kcName);
     }
 
@@ -791,13 +814,13 @@ public class RoomManager {
      * @throws RoomException in case the room doesn't exist or has been already closed
      */
     public Set<UserParticipant> closeRoom(String roomName) throws RoomException {
-        Room room = rooms.get(roomName);
+        RoomConnection room = getRoomConnection(roomName);
         if (room == null) {
-            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "Room '" + roomName + "' not found");
+            throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE, "RoomConnection '" + roomName + "' not found");
         }
         if (room.isClosed()) {
             throw new RoomException(Code.ROOM_CLOSED_ERROR_CODE,
-                    "Room '" + roomName + "' already closed");
+                    "RoomConnection '" + roomName + "' already closed");
         }
         Set<UserParticipant> participants = getParticipants(roomName);
         // copy the ids as they will be removed from the map
@@ -811,7 +834,8 @@ public class RoomManager {
         }
         room.close();
         rooms.remove(roomName);
-        log.warn("Room '{}' removed and closed", roomName);
+        roomDB.remove(roomName);
+        log.warn("RoomConnection '{}' removed and closed", roomName);
         return participants;
     }
 
@@ -871,8 +895,9 @@ public class RoomManager {
     // ------------------ HELPERS ------------------------------------------
 
     private Participant getParticipant(String pid) throws RoomException {
-        for (Room r : rooms.values()) {
-            if (!r.isClosed()) {
+        for (Room room : roomDB.values()) {
+            RoomConnection r = getRoomConnection(room.getRoomName());
+            if (r != null && !r.isClosed()) {
                 if (r.getParticipantIds().contains(pid) && r.getParticipant(pid) != null) {
                     return r.getParticipant(pid);
                 }
@@ -883,9 +908,10 @@ public class RoomManager {
     }
 
     public void updateFilter(String roomId, String filterId) {
-        Room room = rooms.get(roomId);
-
-        room.updateFilter(filterId);
+        RoomConnection room = rooms.get(roomId);
+        if (room != null) {
+            room.updateFilter(filterId);
+        }
     }
 
 }

@@ -76,4 +76,12 @@ public class SubscriberEndpoint extends MediaEndpoint {
         setMuteType(null);
     }
 
+
+    @Override
+    public String toString() {
+        return "SubscriberEndpoint{" +
+                "connectedToPublisher=" + connectedToPublisher +
+                ", publisher=" + publisher +
+                "} " + super.toString();
+    }
 }

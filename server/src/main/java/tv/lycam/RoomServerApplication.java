@@ -81,7 +81,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
             log.info("Using autodiscovery rules to locate KMS on every pipeline");
             return new AutodiscoveryKurentoClientProvider();
         } else {
-            log.info("Configuring Kurento Room Server to use first of the following kmss: " + kmsUris);
+            log.info("Configuring Kurento RoomConnection Server to use first of the following kmss: " + kmsUris);
             return new FixedOneKmsManager(firstKmsWsUri);
         }*/
 

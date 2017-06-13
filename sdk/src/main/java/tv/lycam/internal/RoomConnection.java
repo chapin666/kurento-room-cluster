@@ -1,17 +1,16 @@
 package tv.lycam.internal;
 
-import com.hazelcast.nio.ObjectDataInput;
-import com.hazelcast.nio.ObjectDataOutput;
-import com.hazelcast.nio.serialization.DataSerializable;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tv.lycam.HazelcastConfiguration;
 import tv.lycam.api.RoomHandler;
+import tv.lycam.api.pojo.Room;
+import tv.lycam.api.pojo.UserParticipant;
 import tv.lycam.exception.RoomException;
 import tv.lycam.exception.RoomException.Code;
-
-import java.io.IOException;
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,11 +23,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by chengbin on 2017/6/7.
  */
-public class Room implements DataSerializable {
+public class RoomConnection {
 
     public static final int ASYNC_LATCH_TIMEOUT = 30;
 
-    private final static Logger log = LoggerFactory.getLogger(Room.class);
+    private final static Logger log = LoggerFactory.getLogger(RoomConnection.class);
+
+
+    private HazelcastInstance hazelcastInstance;
+    private ConcurrentMap<String, UserParticipant> participantDB;
 
     // participants set
     // TODO
@@ -36,7 +39,7 @@ public class Room implements DataSerializable {
             new ConcurrentHashMap<String, Participant>();
 
 
-    private String name;
+    private Room room;
 
     private MediaPipeline pipeline;
     private CountDownLatch pipelineLatch = new CountDownLatch(1);
@@ -57,72 +60,86 @@ public class Room implements DataSerializable {
     private final ConcurrentHashMap<String, String> filterStates = new ConcurrentHashMap<>();
 
 
-    public Room() {}
+    public RoomConnection() {}
 
 
-    public Room(String roomName, KurentoClient kurentoClient, RoomHandler roomHandler,
-                boolean destroyKurentoClient) {
-        this.name = roomName;
+    public RoomConnection(Room room, KurentoClient kurentoClient, RoomHandler roomHandler,
+                          boolean destroyKurentoClient) {
+        this.room = room;
         this.kurentoClient = kurentoClient;
         this.destroyKurentoClient = destroyKurentoClient;
         this.roomHandler = roomHandler;
-        log.debug("New ROOM instance, named '{}'", roomName);
+        log.debug("New ROOM instance, named '{}'", room.getRoomName());
+
+        this.hazelcastInstance = Hazelcast.getOrCreateHazelcastInstance(HazelcastConfiguration.config());
+        this.participantDB = hazelcastInstance.getMap("participants");
     }
 
     public String getName() {
-        return name;
+        return this.room.getRoomName();
     }
 
     public MediaPipeline getPipeline() {
         try {
-            pipelineLatch.await(Room.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS);
+            pipelineLatch.await(RoomConnection.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         return this.pipeline;
     }
 
-    public synchronized void join(String participantId, String userName, boolean dataChannels,
+
+    public synchronized void join(UserParticipant userParticipant, boolean dataChannels,
                                   boolean webParticipant) throws RoomException {
 
         checkClosed();
 
-        if (userName == null || userName.isEmpty()) {
+        if (userParticipant.getUserName() == null || userParticipant.getUserName().isEmpty()) {
             throw new RoomException(Code.GENERIC_ERROR_CODE, "Empty user name is not allowed");
         }
-        for (Participant p : participants.values()) {
-            if (p.getName().equals(userName)) {
+
+        for (UserParticipant p : participantDB.values()) {
+            if (p.getUserName().equals(userParticipant.getUserName())) {
                 throw new RoomException(Code.EXISTING_USER_IN_ROOM_ERROR_CODE,
-                        "User '" + userName + "' already exists in room '" + name + "'");
+                        "User '" + userParticipant.getUserName() + "' already exists in room '" + this.room.getRoomName() + "'");
             }
         }
 
         createPipeline();
 
+        // TODO
+        this.participantDB.put(userParticipant.getUserName(), userParticipant);
+        //
+
+
         Participant participant =
-                new Participant(participantId, userName, this, getPipeline(), dataChannels, webParticipant);
-        participants.put(participantId, participant);
+                new Participant(userParticipant, this, getPipeline(), dataChannels, webParticipant);
+        participants.put(userParticipant.getParticipantId(), participant);
 
         filterStates.forEach((filterId, state) -> {
             log.info("Adding filter {}", filterId);
-            roomHandler.updateFilter(name, participant, filterId, state);
+            roomHandler.updateFilter(this.room.getRoomName(), participant, filterId, state);
         });
 
-        log.info("ROOM {}: Added participant {}", name, userName);
+        log.info("ROOM {}: Added participant {}", this.room.getRoomName(), userParticipant.getUserName());
     }
 
     public void newPublisher(Participant participant) {
         registerPublisher();
 
         // pre-load endpoints to recv video from the new publisher
-        for (Participant participant1 : participants.values()) {
+        for (UserParticipant participant1 : participantDB.values()) {
             if (participant.equals(participant1)) {
                 continue;
             }
-            participant1.getNewOrExistingSubscriber(participant.getName());
+
+            // todo
+            Participant participant2 = getParticipantByName(participant1.getUserName());
+            participant2.getNewOrExistingSubscriber(participant.getName());
+            //
         }
 
-        log.debug("ROOM {}: Virtually subscribed other participants {} to new publisher {}", name,
+        log.debug("ROOM {}: Virtually subscribed other participants {} to new publisher {}", this.room.getRoomName(),
                 participants.values(), participant.getName());
     }
 
@@ -130,14 +147,20 @@ public class Room implements DataSerializable {
         deregisterPublisher();
 
         // cancel recv video from this publisher
-        for (Participant subscriber : participants.values()) {
-            if (participant.equals(subscriber)) {
+        for (UserParticipant s : participantDB.values()) {
+            if (participant.equals(s)) {
                 continue;
             }
-            subscriber.cancelReceivingMedia(participant.getName());
+            Participant subscriber = getParticipant(s.getParticipantId());
+            if (subscriber != null) {
+                subscriber.cancelReceivingMedia(participant.getName());
+            } else {
+                throw new RoomException(Code.USER_NOT_FOUND_ERROR_CODE,
+                        "User #" + subscriber.getId() + " not found in room '" + this.room.getRoomName() + "'");
+            }
         }
 
-        log.debug("ROOM {}: Unsubscribed other participants {} from the publisher {}", name,
+        log.debug("ROOM {}: Unsubscribed other participants {} from the publisher {}", this.room.getRoomName(),
                 participants.values(), participant.getName());
 
     }
@@ -149,16 +172,20 @@ public class Room implements DataSerializable {
         Participant participant = participants.get(participantId);
         if (participant == null) {
             throw new RoomException(Code.USER_NOT_FOUND_ERROR_CODE,
-                    "User #" + participantId + " not found in room '" + name + "'");
+                    "User #" + participantId + " not found in room '" + this.room.getRoomName() + "'");
         }
         participant.releaseAllFilters();
 
-        log.info("PARTICIPANT {}: Leaving room {}", participant.getName(), this.name);
+        log.info("PARTICIPANT {}: Leaving room {}", participant.getName(), this.room.getRoomName());
         if (participant.isStreaming()) {
             this.deregisterPublisher();
         }
-        this.removeParticipant(participant);
+
         participant.close();
+
+        this.removeParticipant(participant);
+
+
     }
 
     public Collection<Participant> getParticipants() {
@@ -206,7 +233,7 @@ public class Room implements DataSerializable {
 
             closePipeline();
 
-            log.debug("Room {} closed", this.name);
+            log.debug("RoomConnection {} closed", this.room.getRoomName());
 
             if (destroyKurentoClient) {
                 kurentoClient.destroy();
@@ -214,16 +241,16 @@ public class Room implements DataSerializable {
 
             this.closed = true;
         } else {
-            log.warn("Closing an already closed room '{}'", this.name);
+            log.warn("Closing an already closed room '{}'", this.room.getRoomName());
         }
     }
 
     public void sendIceCandidate(String participantId, String endpointName, IceCandidate candidate) {
-        this.roomHandler.onIceCandidate(name, participantId, endpointName, candidate);
+        this.roomHandler.onIceCandidate(this.room.getRoomName(), participantId, endpointName, candidate);
     }
 
     public void sendMediaError(String participantId, String description) {
-        this.roomHandler.onMediaElementError(name, participantId, description);
+        this.roomHandler.onMediaElementError(this.room.getRoomName(), participantId, description);
     }
 
     public boolean isClosed() {
@@ -232,7 +259,7 @@ public class Room implements DataSerializable {
 
     private void checkClosed() {
         if (closed) {
-            throw new RoomException(Code.ROOM_CLOSED_ERROR_CODE, "The room '" + name + "' is closed");
+            throw new RoomException(Code.ROOM_CLOSED_ERROR_CODE, "The room '" + this.room.getRoomName() + "' is closed");
         }
     }
 
@@ -242,7 +269,11 @@ public class Room implements DataSerializable {
 
         participants.remove(participant.getId());
 
-        log.debug("ROOM {}: Cancel receiving media from user '{}' for other users", this.name,
+        // TODO
+        participantDB.remove(participant.getName());
+        //
+
+        log.debug("ROOM {}: Cancel receiving media from user '{}' for other users", this.room.getRoomName(),
                 participant.getName());
         for (Participant other : participants.values()) {
             other.cancelReceivingMedia(participant.getName());
@@ -266,29 +297,29 @@ public class Room implements DataSerializable {
             if (pipeline != null) {
                 return;
             }
-            log.info("ROOM {}: Creating MediaPipeline", name);
+            log.info("ROOM {}: Creating MediaPipeline", this.room.getRoomName());
             try {
                 kurentoClient.createMediaPipeline(new Continuation<MediaPipeline>() {
                     @Override
                     public void onSuccess(MediaPipeline result) throws Exception {
                         pipeline = result;
                         pipelineLatch.countDown();
-                        log.debug("ROOM {}: Created MediaPipeline", name);
+                        log.debug("ROOM {}: Created MediaPipeline", room.getRoomName());
                     }
 
                     @Override
                     public void onError(Throwable cause) throws Exception {
                         pipelineLatch.countDown();
-                        log.error("ROOM {}: Failed to create MediaPipeline", name, cause);
+                        log.error("ROOM {}: Failed to create MediaPipeline", room.getRoomName(), cause);
                     }
                 });
             } catch (Exception e) {
-                log.error("Unable to create media pipeline for room '{}'", name, e);
+                log.error("Unable to create media pipeline for room '{}'", this.room.getRoomName(), e);
                 pipelineLatch.countDown();
             }
             if (getPipeline() == null) {
                 throw new RoomException(Code.ROOM_CANNOT_BE_CREATED_ERROR_CODE,
-                        "Unable to create media pipeline for room '" + name + "'");
+                        "Unable to create media pipeline for room '" + this.room.getRoomName() + "'");
             }
 
             pipeline.addErrorListener(new EventListener<ErrorEvent>() {
@@ -297,8 +328,8 @@ public class Room implements DataSerializable {
                     String desc =
                             event.getType() + ": " + event.getDescription() + "(errCode=" + event.getErrorCode()
                                     + ")";
-                    log.warn("ROOM {}: Pipeline error encountered: {}", name, desc);
-                    roomHandler.onPipelineError(name, getParticipantIds(), desc);
+                    log.warn("ROOM {}: Pipeline error encountered: {}", room.getRoomName(), desc);
+                    roomHandler.onPipelineError(room.getRoomName(), getParticipantIds(), desc);
                 }
             });
         }
@@ -313,13 +344,13 @@ public class Room implements DataSerializable {
 
                 @Override
                 public void onSuccess(Void result) throws Exception {
-                    log.debug("ROOM {}: Released Pipeline", Room.this.name);
+                    log.debug("ROOM {}: Released Pipeline", room.getRoomName());
                     pipelineReleased = true;
                 }
 
                 @Override
                 public void onError(Throwable cause) throws Exception {
-                    log.warn("ROOM {}: Could not successfully release Pipeline", Room.this.name, cause);
+                    log.warn("ROOM {}: Could not successfully release Pipeline", room.getRoomName(), cause);
                     pipelineReleased = true;
                 }
             });
@@ -339,23 +370,9 @@ public class Room implements DataSerializable {
 
 
     @Override
-    public void writeData(ObjectDataOutput out) throws IOException {
-        out.writeUTF(name);
-        out.writeObject(kurentoClient);
-        //out.writeObject(roomHandler);
-    }
-
-    @Override
-    public void readData(ObjectDataInput in) throws IOException {
-        this.name = in.readUTF();
-        this.kurentoClient = in.readObject();
-        //this.roomHandler = in.readObject();
-    }
-
-    @Override
     public String toString() {
-        return "Room{" +
-                "name='" + name + '\'' +
+        return "RoomConnection{" +
+                "name='" + this.room.getRoomName() + '\'' +
                 ", pipeline=" + pipeline +
                 ", pipelineLatch=" + pipelineLatch +
                 ", roomHandler=" + roomHandler +

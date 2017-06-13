@@ -5,6 +5,7 @@ import org.kurento.client.internal.server.KurentoServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tv.lycam.api.MutedMediaType;
+import tv.lycam.api.pojo.UserParticipant;
 import tv.lycam.endpoint.PublisherEndpoint;
 import tv.lycam.endpoint.SdpType;
 import tv.lycam.endpoint.SubscriberEndpoint;
@@ -25,12 +26,11 @@ public class Participant {
 
     private static final Logger log = LoggerFactory.getLogger(Participant.class);
 
-    private String id;
-    private String name;
+    private UserParticipant user;
     private boolean web = false;
     private boolean dataChannels = false;
 
-    private final Room room;
+    private final RoomConnection room;
 
     private final MediaPipeline pipeline;
 
@@ -47,18 +47,17 @@ public class Participant {
     private volatile boolean streaming = false;
     private volatile boolean closed;
 
-    public Participant(String id, String name, Room room, MediaPipeline pipeline,
+    public Participant(UserParticipant user, RoomConnection room, MediaPipeline pipeline,
                        boolean dataChannels, boolean web) {
-        this.id = id;
-        this.name = name;
+        this.user = user;
         this.web = web;
         this.dataChannels = dataChannels;
         this.pipeline = pipeline;
         this.room = room;
-        this.publisher = new PublisherEndpoint(web, dataChannels, this, name, pipeline);
+        this.publisher = new PublisherEndpoint(web, dataChannels, this, user.getUserName(), pipeline);
 
         for (Participant other : room.getParticipants()) {
-            if (!other.getName().equals(this.name)) {
+            if (!other.getName().equals(this.user.getUserName())) {
                 getNewOrExistingSubscriber(other.getName());
             }
         }
@@ -73,11 +72,11 @@ public class Participant {
     }
 
     public String getId() {
-        return id;
+        return this.user.getParticipantId();
     }
 
     public String getName() {
-        return name;
+        return this.user.getUserName();
     }
 
     public void shapePublisherMedia(MediaElement element, MediaType type) {
@@ -139,7 +138,7 @@ public class Participant {
 
     public PublisherEndpoint getPublisher() {
         try {
-            if (!endPointLatch.await(Room.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS)) {
+            if (!endPointLatch.await(RoomConnection.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS)) {
                 throw new RoomException(
                         Code.MEDIA_ENDPOINT_ERROR_CODE,
                         "Timeout reached while waiting for publisher endpoint to be ready");
@@ -152,7 +151,7 @@ public class Participant {
         return this.publisher;
     }
 
-    public Room getRoom() {
+    public RoomConnection getRoom() {
         return this.room;
     }
 
@@ -190,61 +189,61 @@ public class Participant {
     public String preparePublishConnection() {
         log.info(
                 "USER {}: Request to publish video in room {} by " + "initiating connection from server",
-                this.name, this.room.getName());
+                this.user.getUserName(), this.room.getName());
 
         String sdpOffer = this.getPublisher().preparePublishConnection();
 
-        log.trace("USER {}: Publishing SdpOffer is {}", this.name, sdpOffer);
-        log.info("USER {}: Generated Sdp offer for publishing in room {}", this.name,
+        log.trace("USER {}: Publishing SdpOffer is {}", this.user.getUserName(), sdpOffer);
+        log.info("USER {}: Generated Sdp offer for publishing in room {}", this.user.getUserName(),
                 this.room.getName());
         return sdpOffer;
     }
 
     public String publishToRoom(SdpType sdpType, String sdpString, boolean doLoopback,
                                 MediaElement loopbackAlternativeSrc, MediaType loopbackConnectionType) {
-        log.info("USER {}: Request to publish video in room {} (sdp type {})", this.name,
+        log.info("USER {}: Request to publish video in room {} (sdp type {})", this.user.getUserName(),
                 this.room.getName(), sdpType);
-        log.trace("USER {}: Publishing Sdp ({}) is {}", this.name, sdpType, sdpString);
+        log.trace("USER {}: Publishing Sdp ({}) is {}", this.user.getUserName(), sdpType, sdpString);
 
         String sdpResponse = this.getPublisher()
                 .publish(sdpType, sdpString, doLoopback, loopbackAlternativeSrc, loopbackConnectionType);
         this.streaming = true;
 
-        log.trace("USER {}: Publishing Sdp ({}) is {}", this.name, sdpType, sdpResponse);
-        log.info("USER {}: Is now publishing video in room {}", this.name, this.room.getName());
+        log.trace("USER {}: Publishing Sdp ({}) is {}", this.user.getUserName(), sdpType, sdpResponse);
+        log.info("USER {}: Is now publishing video in room {}", this.user.getUserName(), this.room.getName());
 
         return sdpResponse;
     }
 
     public void unpublishMedia() {
-        log.debug("PARTICIPANT {}: unpublishing media stream from room {}", this.name,
+        log.debug("PARTICIPANT {}: unpublishing media stream from room {}", this.user.getUserName(),
                 this.room.getName());
         releasePublisherEndpoint();
-        this.publisher = new PublisherEndpoint(web, dataChannels, this, name, pipeline);
+        this.publisher = new PublisherEndpoint(web, dataChannels, this, this.user.getUserName(), pipeline);
         log.debug("PARTICIPANT {}: released publisher endpoint and left it "
-                + "initialized (ready for future streaming)", this.name);
+                + "initialized (ready for future streaming)", this.user.getUserName());
     }
 
     public String receiveMediaFrom(Participant sender, String sdpOffer) {
         final String senderName = sender.getName();
 
-        log.info("USER {}: Request to receive media from {} in room {}", this.name, senderName,
+        log.info("USER {}: Request to receive media from {} in room {}", this.user.getUserName(), senderName,
                 this.room.getName());
-        log.trace("USER {}: SdpOffer for {} is {}", this.name, senderName, sdpOffer);
+        log.trace("USER {}: SdpOffer for {} is {}", this.user.getUserName(), senderName, sdpOffer);
 
-        if (senderName.equals(this.name)) {
-            log.warn("PARTICIPANT {}: trying to configure loopback by subscribing", this.name);
+        if (senderName.equals(this.user.getUserName())) {
+            log.warn("PARTICIPANT {}: trying to configure loopback by subscribing", this.user.getUserName());
             throw new RoomException(Code.USER_NOT_STREAMING_ERROR_CODE,
                     "Can loopback only when publishing media");
         }
 
         if (sender.getPublisher() == null) {
             log.warn("PARTICIPANT {}: Trying to connect to a user without " + "a publishing endpoint",
-                    this.name);
+                    this.user.getUserName());
             return null;
         }
 
-        log.debug("PARTICIPANT {}: Creating a subscriber endpoint to user {}", this.name, senderName);
+        log.debug("PARTICIPANT {}: Creating a subscriber endpoint to user {}", this.user.getUserName(), senderName);
 
         SubscriberEndpoint subscriber = getNewOrExistingSubscriber(senderName);
 
@@ -252,7 +251,7 @@ public class Participant {
             CountDownLatch subscriberLatch = new CountDownLatch(1);
             SdpEndpoint oldMediaEndpoint = subscriber.createEndpoint(subscriberLatch);
             try {
-                if (!subscriberLatch.await(Room.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS)) {
+                if (!subscriberLatch.await(RoomConnection.ASYNC_LATCH_TIMEOUT, TimeUnit.SECONDS)) {
                     throw new RoomException(Code.MEDIA_ENDPOINT_ERROR_CODE,
                             "Timeout reached when creating subscriber endpoint");
                 }
@@ -262,7 +261,7 @@ public class Participant {
             }
             if (oldMediaEndpoint != null) {
                 log.warn("PARTICIPANT {}: Two threads are trying to create at "
-                        + "the same time a subscriber endpoint for user {}", this.name, senderName);
+                        + "the same time a subscriber endpoint for user {}", this.user.getUserName(), senderName);
                 return null;
             }
             if (subscriber.getEndpoint() == null) {
@@ -274,11 +273,11 @@ public class Participant {
             throw e;
         }
 
-        log.debug("PARTICIPANT {}: Created subscriber endpoint for user {}", this.name, senderName);
+        log.debug("PARTICIPANT {}: Created subscriber endpoint for user {}", this.user.getUserName(), senderName);
         try {
             String sdpAnswer = subscriber.subscribe(sdpOffer, sender.getPublisher());
-            log.trace("USER {}: Subscribing SdpAnswer is {}", this.name, sdpAnswer);
-            log.info("USER {}: Is now receiving video from {} in room {}", this.name, senderName,
+            log.trace("USER {}: Subscribing SdpAnswer is {}", this.user.getUserName(), sdpAnswer);
+            log.info("USER {}: Is now receiving video from {} in room {}", this.user.getUserName(), senderName,
                     this.room.getName());
             return sdpAnswer;
         } catch (KurentoServerException e) {
@@ -297,13 +296,13 @@ public class Participant {
     }
 
     public void cancelReceivingMedia(String senderName) {
-        log.debug("PARTICIPANT {}: cancel receiving media from {}", this.name, senderName);
+        log.debug("PARTICIPANT {}: cancel receiving media from {}", this.user.getUserName(), senderName);
         SubscriberEndpoint subscriberEndpoint = subscribers.remove(senderName);
         if (subscriberEndpoint == null || subscriberEndpoint.getEndpoint() == null) {
             log.warn("PARTICIPANT {}: Trying to cancel receiving video from user {}. "
-                    + "But there is no such subscriber endpoint.", this.name, senderName);
+                    + "But there is no such subscriber endpoint.", this.user.getUserName(), senderName);
         } else {
-            log.debug("PARTICIPANT {}: Cancel subscriber endpoint linked to user {}", this.name,
+            log.debug("PARTICIPANT {}: Cancel subscriber endpoint linked to user {}", this.user.getUserName(),
                     senderName);
 
             releaseSubscriberEndpoint(senderName, subscriberEndpoint);
@@ -320,7 +319,7 @@ public class Participant {
     public void unmutePublishedMedia() {
         if (this.getPublisher().getMuteType() == null) {
             log.warn("PARTICIPANT {}: Trying to unmute published media. " + "But media is not muted.",
-                    this.name);
+                    this.user.getUserName());
         } else {
             this.getPublisher().unmute();
         }
@@ -334,9 +333,9 @@ public class Participant {
         SubscriberEndpoint subscriberEndpoint = subscribers.get(senderName);
         if (subscriberEndpoint == null || subscriberEndpoint.getEndpoint() == null) {
             log.warn("PARTICIPANT {}: Trying to mute incoming media from user {}. "
-                    + "But there is no such subscriber endpoint.", this.name, senderName);
+                    + "But there is no such subscriber endpoint.", this.user.getUserName(), senderName);
         } else {
-            log.debug("PARTICIPANT {}: Mute subscriber endpoint linked to user {}", this.name,
+            log.debug("PARTICIPANT {}: Mute subscriber endpoint linked to user {}", this.user.getUserName(),
                     senderName);
             subscriberEndpoint.mute(muteType);
         }
@@ -347,13 +346,13 @@ public class Participant {
         SubscriberEndpoint subscriberEndpoint = subscribers.get(senderName);
         if (subscriberEndpoint == null || subscriberEndpoint.getEndpoint() == null) {
             log.warn("PARTICIPANT {}: Trying to unmute incoming media from user {}. "
-                    + "But there is no such subscriber endpoint.", this.name, senderName);
+                    + "But there is no such subscriber endpoint.", this.user.getUserName(), senderName);
         } else {
             if (subscriberEndpoint.getMuteType() == null) {
                 log.warn("PARTICIPANT {}: Trying to unmute incoming media from user {}. "
-                        + "But media is not muted.", this.name, senderName);
+                        + "But media is not muted.", this.user.getUserName(), senderName);
             } else {
-                log.debug("PARTICIPANT {}: Unmute subscriber endpoint linked to user {}", this.name,
+                log.debug("PARTICIPANT {}: Unmute subscriber endpoint linked to user {}", this.user.getUserName(),
                         senderName);
                 subscriberEndpoint.unmute();
             }
@@ -361,9 +360,9 @@ public class Participant {
     }
 
     public void close() {
-        log.debug("PARTICIPANT {}: Closing user", this.name);
+        log.debug("PARTICIPANT {}: Closing user", this.user.getUserName());
         if (isClosed()) {
-            log.warn("PARTICIPANT {}: Already closed", this.name);
+            log.warn("PARTICIPANT {}: Already closed", this.user.getUserName());
             return;
         }
         this.closed = true;
@@ -371,11 +370,11 @@ public class Participant {
             SubscriberEndpoint subscriber = this.subscribers.get(remoteParticipantName);
             if (subscriber != null && subscriber.getEndpoint() != null) {
                 releaseSubscriberEndpoint(remoteParticipantName, subscriber);
-                log.debug("PARTICIPANT {}: Released subscriber endpoint to {}", this.name,
+                log.debug("PARTICIPANT {}: Released subscriber endpoint to {}", this.user.getUserName(),
                         remoteParticipantName);
             } else {
                 log.warn("PARTICIPANT {}: Trying to close subscriber endpoint to {}. "
-                        + "But the endpoint was never instantiated.", this.name, remoteParticipantName);
+                        + "But the endpoint was never instantiated.", this.user.getUserName(), remoteParticipantName);
             }
         }
         releasePublisherEndpoint();
@@ -394,16 +393,16 @@ public class Participant {
                 this.subscribers.putIfAbsent(remoteName, sendingEndpoint);
         if (existingSendingEndpoint != null) {
             sendingEndpoint = existingSendingEndpoint;
-            log.trace("PARTICIPANT {}: Already exists a subscriber endpoint to user {}", this.name,
+            log.trace("PARTICIPANT {}: Already exists a subscriber endpoint to user {}", this.user.getUserName(),
                     remoteName);
         } else {
-            log.debug("PARTICIPANT {}: New subscriber endpoint to user {}", this.name, remoteName);
+            log.debug("PARTICIPANT {}: New subscriber endpoint to user {}", this.user.getUserName(), remoteName);
         }
         return sendingEndpoint;
     }
 
     public void addIceCandidate(String endpointName, IceCandidate iceCandidate) {
-        if (this.name.equals(endpointName)) {
+        if (this.user.getUserName().equals(endpointName)) {
             this.publisher.addIceCandidate(iceCandidate);
         } else {
             this.getNewOrExistingSubscriber(endpointName).addIceCandidate(iceCandidate);
@@ -411,14 +410,14 @@ public class Participant {
     }
 
     public void sendIceCandidate(String endpointName, IceCandidate candidate) {
-        room.sendIceCandidate(id, endpointName, candidate);
+        room.sendIceCandidate(this.user.getParticipantId(), endpointName, candidate);
     }
 
     public void sendMediaError(ErrorEvent event) {
         String desc =
                 event.getType() + ": " + event.getDescription() + "(errCode=" + event.getErrorCode() + ")";
-        log.warn("PARTICIPANT {}: Media error encountered: {}", name, desc);
-        room.sendMediaError(id, desc);
+        log.warn("PARTICIPANT {}: Media error encountered: {}", this.user.getUserName(), desc);
+        room.sendMediaError(this.user.getParticipantId(), desc);
     }
 
     private void releasePublisherEndpoint() {
@@ -426,12 +425,12 @@ public class Participant {
             this.streaming = false;
             publisher.unregisterErrorListeners();
             for (MediaElement el : publisher.getMediaElements()) {
-                releaseElement(name, el);
+                releaseElement(this.user.getUserName(), el);
             }
-            releaseElement(name, publisher.getEndpoint());
+            releaseElement(this.user.getUserName(), publisher.getEndpoint());
             publisher = null;
         } else {
-            log.warn("PARTICIPANT {}: Trying to release publisher endpoint but is null", name);
+            log.warn("PARTICIPANT {}: Trying to release publisher endpoint but is null", this.user.getUserName());
         }
     }
 
@@ -440,7 +439,7 @@ public class Participant {
             subscriber.unregisterErrorListeners();
             releaseElement(senderName, subscriber.getEndpoint());
         } else {
-            log.warn("PARTICIPANT {}: Trying to release subscriber endpoint for '{}' but is null", name,
+            log.warn("PARTICIPANT {}: Trying to release subscriber endpoint for '{}' but is null", this.user.getUserName(),
                     senderName);
         }
     }
@@ -452,32 +451,32 @@ public class Participant {
                 @Override
                 public void onSuccess(Void result) throws Exception {
                     log.debug("PARTICIPANT {}: Released successfully media element #{} for {}",
-                            Participant.this.name, eid, senderName);
+                            user.getUserName(), eid, senderName);
                 }
 
                 @Override
                 public void onError(Throwable cause) throws Exception {
                     log.warn("PARTICIPANT {}: Could not release media element #{} for {}",
-                            Participant.this.name, eid, senderName, cause);
+                           user.getUserName(), eid, senderName, cause);
                 }
             });
         } catch (Exception e) {
-            log.error("PARTICIPANT {}: Error calling release on elem #{} for {}", name, eid, senderName,
+            log.error("PARTICIPANT {}: Error calling release on elem #{} for {}", this.user.getUserName(), eid, senderName,
                     e);
         }
     }
 
     @Override
     public String toString() {
-        return "[User: " + name + "]";
+        return "[User: " + this.user.getUserName() + "]";
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (id == null ? 0 : id.hashCode());
-        result = prime * result + (name == null ? 0 : name.hashCode());
+        result = prime * result + (this.user.getParticipantId() == null ? 0 : this.user.getParticipantId().hashCode());
+        result = prime * result + (this.user.getUserName() == null ? 0 : this.user.getUserName().hashCode());
         return result;
     }
 
@@ -493,18 +492,18 @@ public class Participant {
             return false;
         }
         Participant other = (Participant) obj;
-        if (id == null) {
-            if (other.id != null) {
+        if (this.user.getParticipantId() == null) {
+            if (other.user.getParticipantId() != null) {
                 return false;
             }
-        } else if (!id.equals(other.id)) {
+        } else if (!this.user.getParticipantId().equals(other.user.getParticipantId())) {
             return false;
         }
-        if (name == null) {
-            if (other.name != null) {
+        if (this.user.getUserName() == null) {
+            if (other.user.getUserName() != null) {
                 return false;
             }
-        } else if (!name.equals(other.name)) {
+        } else if (!this.user.getUserName().equals(other.user.getUserName())) {
             return false;
         }
         return true;

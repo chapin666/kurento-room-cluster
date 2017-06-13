@@ -1,15 +1,29 @@
 package tv.lycam.api.pojo;
 
+import com.hazelcast.nio.ObjectDataInput;
+import com.hazelcast.nio.ObjectDataOutput;
+import com.hazelcast.nio.serialization.DataSerializable;
+
+import java.io.IOException;
 import java.io.Serializable;
 
 /**
  * Created by chengbin on 2017/6/7.
  */
-public class UserParticipant implements Serializable {
+public class UserParticipant implements DataSerializable {
 
     private String participantId;
     private String userName;
     private boolean streaming = false;
+    private String roomName;
+
+    public UserParticipant() {}
+
+    public UserParticipant(String participantId, String userName) {
+        super();
+        this.participantId = participantId;
+        this.userName = userName;
+    }
 
     public UserParticipant(String participantId, String userName, boolean streaming) {
         super();
@@ -18,8 +32,9 @@ public class UserParticipant implements Serializable {
         this.streaming = streaming;
     }
 
-    public UserParticipant(String participantId, String userName) {
+    public UserParticipant(String roomName, String participantId, String userName) {
         super();
+        this.roomName = roomName;
         this.participantId = participantId;
         this.userName = userName;
     }
@@ -48,46 +63,12 @@ public class UserParticipant implements Serializable {
         this.streaming = streaming;
     }
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + (participantId == null ? 0 : participantId.hashCode());
-        result = prime * result + (streaming ? 1231 : 1237);
-        result = prime * result + (userName == null ? 0 : userName.hashCode());
-        return result;
+    public String getRoomName() {
+        return roomName;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (!(obj instanceof UserParticipant)) {
-            return false;
-        }
-        UserParticipant other = (UserParticipant) obj;
-        if (participantId == null) {
-            if (other.participantId != null) {
-                return false;
-            }
-        } else if (!participantId.equals(other.participantId)) {
-            return false;
-        }
-        if (streaming != other.streaming) {
-            return false;
-        }
-        if (userName == null) {
-            if (other.userName != null) {
-                return false;
-            }
-        } else if (!userName.equals(other.userName)) {
-            return false;
-        }
-        return true;
+    public void setRoomName(String roomName) {
+        this.roomName = roomName;
     }
 
     @Override
@@ -104,4 +85,42 @@ public class UserParticipant implements Serializable {
         return builder.toString();
     }
 
+    @Override
+    public void writeData(ObjectDataOutput out) throws IOException {
+        out.writeUTF(participantId);
+        out.writeUTF(userName);
+        out.writeUTF(roomName);
+        out.writeBoolean(isStreaming());
+    }
+
+    @Override
+    public void readData(ObjectDataInput in) throws IOException {
+        this.participantId = in.readUTF();
+        this.userName = in.readUTF();
+        this.roomName = in.readUTF();
+        this.streaming = in.readBoolean();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        UserParticipant that = (UserParticipant) o;
+
+        if (streaming != that.streaming) return false;
+        if (participantId != null ? !participantId.equals(that.participantId) : that.participantId != null)
+            return false;
+        if (userName != null ? !userName.equals(that.userName) : that.userName != null) return false;
+        return roomName != null ? roomName.equals(that.roomName) : that.roomName == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = participantId != null ? participantId.hashCode() : 0;
+        result = 31 * result + (userName != null ? userName.hashCode() : 0);
+        result = 31 * result + (streaming ? 1 : 0);
+        result = 31 * result + (roomName != null ? roomName.hashCode() : 0);
+        return result;
+    }
 }

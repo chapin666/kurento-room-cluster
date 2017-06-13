@@ -86,7 +86,7 @@ public class RoomController {
 
         if (!roomManager.getRooms().contains(room)) {
             log.warn("Unable to close room '{}', not found.", room);
-            throw new ResourceNotFoundException("Room '" + room + "' not found");
+            throw new ResourceNotFoundException("RoomConnection '" + room + "' not found");
         }
 
         try {

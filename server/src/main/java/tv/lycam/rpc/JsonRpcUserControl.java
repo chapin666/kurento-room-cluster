@@ -137,6 +137,8 @@ public class JsonRpcUserControl {
     public void leaveRoom(Transaction transaction, Request<JsonObject> request,
                           ParticipantRequest participantRequest) {
 
+        System.out.println("Leave room");
+
         boolean isExists = false;
         String pid = participantRequest.getParticipantId();
 
