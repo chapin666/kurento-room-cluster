@@ -1,8 +1,6 @@
 package tv.lycam;
 
 import com.google.gson.JsonArray;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
 import org.kurento.commons.ConfigFileManager;
 import org.kurento.jsonrpc.JsonUtils;
 import org.kurento.jsonrpc.internal.server.config.JsonRpcConfiguration;
@@ -43,6 +41,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
 
 
     private final String KMS_AUTO_DISCOVERY_MODEL = "autodiscovery";
+
     // KMS 地址列表
     public static final String KMSS_URIS_PROPERTY = "kms.uris";
     // KMS 默认地址
