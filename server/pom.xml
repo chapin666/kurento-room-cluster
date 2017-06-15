@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>tv.lycam</groupId>
+	<groupId>tv.lycam.server</groupId>
 	<artifactId>server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -26,25 +26,21 @@
 
 	<dependencies>
 
-        <!-- Sprong boot -->
+		<!--sdk -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-            <version>${version.spring.boot}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>
-		</dependency>
-
-		<!-- Kurento server -->
-		<dependency>
-			<groupId>tv.lycam</groupId>
+			<groupId>tv.lycam.sdk</groupId>
 			<artifactId>sdk</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<!-- api -->
+		<dependency>
+			<groupId>tv.lycam.api</groupId>
+			<artifactId>api</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+
+        <!-- Kurento -->
 		<dependency>
 			<groupId>org.kurento</groupId>
 			<artifactId>kurento-jsonrpc-server</artifactId>
@@ -110,6 +106,7 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
 
 	</dependencies>
 

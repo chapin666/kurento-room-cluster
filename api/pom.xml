@@ -3,12 +3,12 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>tv.lycam.sdk</groupId>
-	<artifactId>sdk</artifactId>
+	<groupId>tv.lycam.api</groupId>
+	<artifactId>api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>sdk</name>
+	<name>api</name>
 	<description>Demo project for Spring Boot</description>
 
 	<parent>
@@ -18,29 +18,13 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-
-
 	<dependencies>
 		<dependency>
-			<groupId>org.kurento</groupId>
-			<artifactId>kurento-client</artifactId>
-			<version>${version.kurento.room}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>tv.lycam.sdk</groupId>
+			<artifactId>sdk</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-
-        <dependency>
-            <groupId>com.esotericsoftware</groupId>
-            <artifactId>kryo</artifactId>
-            <version>4.0.0</version>
-        </dependency>
-
-    </dependencies>
-
+	</dependencies>
 
 
 </project>
