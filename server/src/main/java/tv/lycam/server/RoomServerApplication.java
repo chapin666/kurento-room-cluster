@@ -42,8 +42,6 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     private final static String ROOM_CFG_FILENAME = "room-config.json";
 
 
-    private final String KMS_AUTO_DISCOVERY_MODEL = "autodiscovery";
-
     // KMS 地址列表
     public static final String KMSS_URIS_PROPERTY = "kms.uris";
     // KMS 默认地址
@@ -69,23 +67,12 @@ public class RoomServerApplication implements JsonRpcConfigurer {
         List<String> kmsWsUris = JsonUtils.toStringList(kmsUris);
 
         if (kmsWsUris.isEmpty()) {
-            throw new IllegalArgumentException(KMSS_URIS_PROPERTY + " 配置至少应该有一个url");
+            throw new IllegalArgumentException(KMSS_URIS_PROPERTY + " At least one kms uri in file " + ROOM_CFG_FILENAME);
         }
 
         FixedNKmsManager fixedNKmsManager = new FixedNKmsManager(kmsWsUris);
-        //fixedNKmsManager.setAuthRegex("");
+
         return fixedNKmsManager;
-
-       /* String firstKmsWsUri = kmsWsUris.get(0);
-
-        if (KMS_AUTO_DISCOVERY_MODEL.equals(firstKmsWsUri)) {
-            log.info("Using autodiscovery rules to locate KMS on every pipeline");
-            return new AutodiscoveryKurentoClientProvider();
-        } else {
-            log.info("Configuring Kurento RoomConnection Server to use first of the following kmss: " + kmsUris);
-            return new FixedOneKmsManager(firstKmsWsUri);
-        }*/
-
     }
 
 
@@ -129,6 +116,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
      */
     public static ConfigurableApplicationContext start(String []args) {
         log.info("Using /dev/urandom for secure random generation");
+        // random number (unlocked)
         System.setProperty("java.security.egd", "file:/dev/./urandom");
         return SpringApplication.run(new Object[]{RoomServerApplication.class, ApiApplication.class}, args);
     }

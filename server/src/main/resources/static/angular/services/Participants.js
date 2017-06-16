@@ -356,7 +356,7 @@ function Participants() {
         if (displayingRelogin) {
             console.warn('Already displaying an alert that leads to relogin');
             return false;
-          }
+        }
         displayingRelogin = true;
         that.removeParticipants();
         LxNotificationService.alert('Warning!', msg, 'Reload', function(answer) {

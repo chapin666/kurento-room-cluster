@@ -89,32 +89,39 @@ public class RoomManager {
     public Set<UserParticipant> joinRoom(String userName, String roomName, boolean dataChannels,
                                          boolean webParticipant, KurentoClientSessionInfo kcSessionInfo, String participantId)
             throws RoomException {
+
+
         log.debug("Request [JOIN_ROOM] user={}, room={}, web={} " + "kcSessionInfo.room={} ({})",
                 userName, roomName, webParticipant,
                 kcSessionInfo != null ? kcSessionInfo.getRoomName() : null, participantId);
-        RoomConnection room = rooms.get(roomName);
+
+        Room room = roomDB.get(roomName);
+
         if (room == null && kcSessionInfo != null) {
             createRoom(kcSessionInfo);
         }
-        room = rooms.get(roomName);
-        if (room == null) {
+
+
+        RoomConnection roomConnection = rooms.get(roomName);
+        if (roomConnection == null) {
             log.warn("RoomConnection '{}' not found");
             throw new RoomException(RoomException.Code.ROOM_NOT_FOUND_ERROR_CODE,
                     "RoomConnection '" + roomName + "' was not found, must be created before '" + userName
                             + "' can join");
         }
-        if (room.isClosed()) {
+
+        if (roomConnection.isClosed()) {
             log.warn("'{}' is trying to join room '{}' but it is closing", userName, roomName);
             throw new RoomException(RoomException.Code.ROOM_CLOSED_ERROR_CODE,
                     "'" + userName + "' is trying to join room '" + roomName + "' but it is closing");
         }
 
         //TODO
-        UserParticipant userParticipant = new UserParticipant(room.getName(), participantId, userName);
+        UserParticipant userParticipant = new UserParticipant(roomConnection.getName(), participantId, userName);
         //
 
         Set<UserParticipant> existingParticipants = getParticipants(roomName);
-        room.join(userParticipant, dataChannels, webParticipant);
+        roomConnection.join(userParticipant, dataChannels, webParticipant);
         return existingParticipants;
     }
 
@@ -153,6 +160,7 @@ public class RoomManager {
             log.debug("No more participants in room '{}', removing it and closing it", roomName);
             room.close();
             rooms.remove(roomName);
+            roomDB.remove(roomName);
             log.warn("RoomConnection '{}' removed and closed", roomName);
         }
         return remainingParticipants;
@@ -767,21 +775,20 @@ public class RoomManager {
      */
     public void createRoom(KurentoClientSessionInfo kcSessionInfo) throws RoomException {
         String roomName = kcSessionInfo.getRoomName();
-        RoomConnection roomConnection = rooms.get(roomName);
-        if (roomConnection != null) {
+        Room room = roomDB.get(roomName);
+        if (room != null) {
             throw new RoomException(RoomException.Code.ROOM_CANNOT_BE_CREATED_ERROR_CODE,
                     "RoomConnection '" + roomName + "' already exists");
         }
-        KurentoClient kurentoClient = kcProvider.getKurentoClient(kcSessionInfo);
-
         //
-        Room room = new Room(roomName);
+        room = new Room(roomName);
         if (roomDB.get(roomName) == null) {
             roomDB.put(roomName, room);
         }
         //
 
-        roomConnection = new RoomConnection(room, kurentoClient, roomHandler, kcProvider.destroyWhenUnused());
+        KurentoClient kurentoClient = kcProvider.getKurentoClient(kcSessionInfo);
+        RoomConnection roomConnection = new RoomConnection(room, kurentoClient, roomHandler, kcProvider.destroyWhenUnused());
 
         RoomConnection oldRoom = rooms.putIfAbsent(roomName, roomConnection);
         if (oldRoom != null) {

@@ -41,18 +41,7 @@ public class NotificationRoomManager {
         this.internalManager = new RoomManager(notificationRoomHandler, kcProvider);
     }
 
-    /**
-     * Provides an instance of the room manager by setting an event handler.
-     *
-     * @param notificationRoomHandler the room event handler implementation
-     * @param kcProvider              enables the manager to obtain Kurento Client instances
-     */
-    public NotificationRoomManager(NotificationRoomHandler notificationRoomHandler,
-                                   KurentoClientProvider kcProvider) {
-        super();
-        this.notificationRoomHandler = notificationRoomHandler;
-        this.internalManager = new RoomManager(notificationRoomHandler, kcProvider);
-    }
+
 
     // ----------------- CLIENT-ORIGINATED REQUESTS ------------
 
@@ -105,6 +94,8 @@ public class NotificationRoomManager {
             log.warn("PARTICIPANT {}: Error leaving room {}", userName, roomName, e);
             notificationRoomHandler.onParticipantLeft(request, null, null, e);
         }
+
+        // notify remain participants
         if (remainingParticipants != null) {
             notificationRoomHandler.onParticipantLeft(request, userName, remainingParticipants, null);
         }

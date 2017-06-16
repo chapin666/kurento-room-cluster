@@ -61,33 +61,52 @@ public class RoomJsonRpcHandler extends DefaultJsonRpcHandler<JsonObject> {
         transaction.startAsync();
 
         switch (request.getMethod()) {
+
+            // 加入房间
             case ProtocolElements.JOINROOM_METHOD:
                 userControl.joinRoom(transaction, request, participantRequest);
                 break;
+
+            // 上传视频流
             case ProtocolElements.PUBLISHVIDEO_METHOD:
                 userControl.publishVideo(transaction, request, participantRequest);
                 break;
+
+            // 停止上传视频
             case ProtocolElements.UNPUBLISHVIDEO_METHOD:
                 userControl.unpublishVideo(transaction, request, participantRequest);
                 break;
+
+            // 接收某一路视频流
             case ProtocolElements.RECEIVEVIDEO_METHOD:
                 userControl.receiveFrom(transaction, request, participantRequest);
                 break;
+
+            // 取消接收视频流
             case ProtocolElements.UNSUBSCRIBEFROMVIDEO_METHOD:
                 userControl.unsubscribeFromVideo(transaction, request, participantRequest);
                 break;
+
+            // 收集Candidate
             case ProtocolElements.ONICECANDIDATE_METHOD:
                 userControl.onIceCandidate(transaction, request, participantRequest);
                 break;
+
+            // 离开房间
             case ProtocolElements.LEAVEROOM_METHOD:
                 userControl.leaveRoom(transaction, request, participantRequest);
                 break;
+
+            // 向房间发送消息
             case ProtocolElements.SENDMESSAGE_ROOM_METHOD:
                 userControl.sendMessage(transaction, request, participantRequest);
                 break;
+
+            // 自定义方法
             case ProtocolElements.CUSTOMREQUEST_METHOD:
                 userControl.customRequest(transaction, request, participantRequest);
                 break;
+
             default:
                 log.error("Unrecognized request {}", request);
                 break;

@@ -19,8 +19,6 @@ import java.util.List;
  */
 public class KmsManager implements KurentoClientProvider {
 
-
-
     /**
      *
      *  KMS load compare
