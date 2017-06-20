@@ -206,6 +206,7 @@ public class RoomManager {
                 participantId);
 
         SdpType sdpType = isOffer ? SdpType.OFFER : SdpType.ANSWER;
+        // TODO
         Participant participant = getParticipant(participantId);
         String name = participant.getName();
         RoomConnection room = participant.getRoom();

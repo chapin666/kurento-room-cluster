@@ -109,20 +109,26 @@ public class NotificationRoomManager {
     public void publishMedia(ParticipantRequest request, boolean isOffer, String sdp,
                              MediaElement loopbackAlternativeSrc, MediaType loopbackConnectionType, boolean doLoopback,
                              MediaElement... mediaElements) {
+
         String pid = request.getParticipantId();
         String userName = null;
         Set<UserParticipant> participants = null;
         String sdpAnswer = null;
+
         try {
             userName = internalManager.getParticipantName(pid);
             sdpAnswer = internalManager
                     .publishMedia(request.getParticipantId(), isOffer, sdp, loopbackAlternativeSrc,
                             loopbackConnectionType, doLoopback, mediaElements);
+
+            // Get all participants from room by id
             participants = internalManager.getParticipants(internalManager.getRoomName(pid));
         } catch (RoomException e) {
             log.warn("PARTICIPANT {}: Error publishing media", userName, e);
             notificationRoomHandler.onPublishMedia(request, null, null, null, e);
         }
+
+        // notify participants in room
         if (sdpAnswer != null) {
             notificationRoomHandler.onPublishMedia(request, userName, sdpAnswer, participants, null);
         }

@@ -14,7 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import tv.lycam.api.ApiApplication;
 import tv.lycam.sdk.NotificationRoomManager;
 import tv.lycam.sdk.api.KurentoClientProvider;
 import tv.lycam.server.kms.FixedNKmsManager;
@@ -118,7 +117,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
         log.info("Using /dev/urandom for secure random generation");
         // random number (unlocked)
         System.setProperty("java.security.egd", "file:/dev/./urandom");
-        return SpringApplication.run(new Object[]{RoomServerApplication.class, ApiApplication.class}, args);
+        return SpringApplication.run(RoomServerApplication.class, args);
     }
 
 
