@@ -5,38 +5,38 @@ package tv.lycam.server.api.response;
  */
 public class ResponseModel<T> {
 
-    public boolean status;
+    public boolean success;
     private String errorMsg;
     public T model;
 
 
     public ResponseModel(T model) {
         this.model = model;
-        this.status = true;
+        this.success = true;
     }
 
     public ResponseModel(String errorMsg) {
-        this.status = false;
+        this.success = false;
         this.errorMsg = errorMsg;
     }
 
     public ResponseModel(boolean status, String errorMsg) {
-        this.status = status;
+        this.success = status;
         this.errorMsg = errorMsg;
     }
 
     public ResponseModel(boolean status, String errorMsg, T model) {
-        this.status = status;
+        this.success = status;
         this.errorMsg = errorMsg;
         this.model = model;
     }
 
-    public boolean isStatus() {
-        return status;
+    public boolean isSuccess() {
+        return success;
     }
 
-    public void setStatus(boolean status) {
-        this.status = status;
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 
     public String getErrorMsg() {

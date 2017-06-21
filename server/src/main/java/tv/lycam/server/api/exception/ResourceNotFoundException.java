@@ -1,4 +1,4 @@
-package tv.lycam.server.exception;
+package tv.lycam.server.api.exception;
 
 /**
  * Created by chengbin on 2017/6/7.

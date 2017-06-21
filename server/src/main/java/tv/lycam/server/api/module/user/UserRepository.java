@@ -12,8 +12,8 @@ import java.util.List;
 public interface UserRepository extends MongoRepository<UserModel, String> {
 
 
-    public UserModel findById(String id);
+    public UserModel findByPhone(String phone);
 
-    public UserModel findByUsername(String username);
+    public UserModel findByPhoneAndPassword(String phone, String password);
 
 }

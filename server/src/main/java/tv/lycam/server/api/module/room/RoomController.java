@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tv.lycam.sdk.NotificationRoomManager;
 import tv.lycam.sdk.exception.RoomException;
 import tv.lycam.server.api.config.ClientConfig;
-import tv.lycam.server.exception.ResourceNotFoundException;
+import tv.lycam.server.api.exception.ResourceNotFoundException;
 
 import java.util.Set;
 

@@ -15,19 +15,19 @@ public class UserModel implements Serializable {
     @Id
     private String id;
 
-    @NotBlank(message = "用户名不能为空")
-    private String username;
+    @NotBlank(message = "手机号不能为空")
+    private String phone;
 
     @NotBlank(message = "密码不能为空")
     private String password;
 
 
-    private String phone;
+    private String username;
     private String email;
     private String gender;
     private String company;
 
-    private String headPic;
+    private String avatar;
     private String createTime;
     private String delTime;
     private boolean isDel;
@@ -93,12 +93,12 @@ public class UserModel implements Serializable {
         this.password = password;
     }
 
-    public String getHeadPic() {
-        return headPic;
+    public String getAvatar() {
+        return avatar;
     }
 
-    public void setHeadPic(String headPic) {
-        this.headPic = headPic;
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public String getCreateTime() {
@@ -136,7 +136,7 @@ public class UserModel implements Serializable {
                 ", gender='" + gender + '\'' +
                 ", company='" + company + '\'' +
                 ", password='" + password + '\'' +
-                ", headPic='" + headPic + '\'' +
+                ", avatar='" + avatar + '\'' +
                 ", createTime='" + createTime + '\'' +
                 ", delTime='" + delTime + '\'' +
                 ", isDel=" + isDel +

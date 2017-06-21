@@ -1,5 +1,6 @@
 package tv.lycam.server;
 
+import com.cloopen.rest.sdk.CCPRestSmsSDK;
 import com.google.gson.JsonArray;
 import org.kurento.commons.ConfigFileManager;
 import org.kurento.jsonrpc.JsonUtils;
@@ -8,14 +9,18 @@ import org.kurento.jsonrpc.server.JsonRpcConfigurer;
 import org.kurento.jsonrpc.server.JsonRpcHandlerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import tv.lycam.sdk.NotificationRoomManager;
 import tv.lycam.sdk.api.KurentoClientProvider;
+import tv.lycam.server.api.storage.StorageProperties;
+import tv.lycam.server.api.storage.StorageService;
 import tv.lycam.server.kms.FixedNKmsManager;
 import tv.lycam.server.rpc.JsonRpcNotificationService;
 import tv.lycam.server.rpc.JsonRpcUserControl;
@@ -31,6 +36,7 @@ import static org.kurento.commons.PropertiesManager.getPropertyJson;
  *
  */
 @Import(JsonRpcConfiguration.class)
+@EnableConfigurationProperties(StorageProperties.class)
 @SpringBootApplication
 public class RoomServerApplication implements JsonRpcConfigurer {
 
@@ -107,6 +113,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
         jsonRpcHandlerRegistry.addHandler(roomHandler().withPingWatchdog(true), "/room");
     }
 
+
     /**
      * 设置并启动
      *
@@ -124,5 +131,25 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     public static void main(String[] args) {
 		start(args);
 	}
+
+
+
+    @Bean
+    CommandLineRunner init(CCPRestSmsSDK ccpRestSmsSDK, StorageService storageService) {
+        return (args) -> {
+
+            System.out.println("88888");
+            ccpRestSmsSDK.init("sandboxapp.cloopen.com", "8883");
+            ccpRestSmsSDK.setAccount("aaf98f8952305ced015230f21a4001ca", "b4cf071f95c442daab536985b590e1bb");
+            ccpRestSmsSDK.setAppId("aaf98f8952305ced015230f7237b0203");
+
+
+            // File init
+            //storageService.deleteAll();
+            storageService.init();
+        };
+    }
+
+
 
 }
