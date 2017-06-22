@@ -7,11 +7,11 @@ public class ResponseModel<T> {
 
     public boolean success;
     private String errorMsg;
-    public T model;
+    public T data;
 
 
     public ResponseModel(T model) {
-        this.model = model;
+        this.data = model;
         this.success = true;
     }
 
@@ -28,7 +28,7 @@ public class ResponseModel<T> {
     public ResponseModel(boolean status, String errorMsg, T model) {
         this.success = status;
         this.errorMsg = errorMsg;
-        this.model = model;
+        this.data = model;
     }
 
     public boolean isSuccess() {
@@ -47,11 +47,11 @@ public class ResponseModel<T> {
         this.errorMsg = errorMsg;
     }
 
-    public T getModel() {
-        return model;
+    public T getData() {
+        return data;
     }
 
-    public void setModel(T model) {
-        this.model = model;
+    public void setData(T data) {
+        this.data = data;
     }
 }

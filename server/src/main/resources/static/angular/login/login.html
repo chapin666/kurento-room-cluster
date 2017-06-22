@@ -7,19 +7,19 @@
 
             <div class="card__content">
                 <lx-text-field label="Username">
-                    <input type="text" id="name" ng-model="room.username" required>
+                    <input type="text" id="name" ng-data="room.username" required>
                 </lx-text-field>
 
                 <div class="grid">
 
                     <div class="grid__col6">
                         <lx-text-field label="Room">
-                            <input type="text" id="roomName" ng-model="room.roomName" required>
+                            <input type="text" id="roomName" ng-data="room.roomName" required>
                         </lx-text-field>
                     </div>
 
                     <div class="grid__col6">
-                        <lx-select ng-model="room.roomName" placeholder="Choose an existing room" choices="listRooms" floating-label>
+                        <lx-select ng-data="room.roomName" placeholder="Choose an existing room" choices="listRooms" floating-label>
                             <lx-select-selected>
                                 {{ $selected}}
                             </lx-select-selected>

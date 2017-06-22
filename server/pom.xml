@@ -32,12 +32,6 @@
 			<artifactId>sdk</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-		<!-- api -->
-		<dependency>
-			<groupId>tv.lycam.api</groupId>
-			<artifactId>api</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
 
 
         <!-- Kurento -->
@@ -51,6 +45,13 @@
 					<artifactId>spring-boot-starter-logging</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt</artifactId>
+			<version>0.7.0</version>
 		</dependency>
 
 

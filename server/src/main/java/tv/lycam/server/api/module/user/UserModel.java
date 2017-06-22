@@ -2,9 +2,11 @@ package tv.lycam.server.api.module.user;
 
 import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
+
 
 /**
  * Created by lycamandroid on 2017/6/19.
@@ -31,6 +33,10 @@ public class UserModel implements Serializable {
     private String createTime;
     private String delTime;
     private boolean isDel;
+
+
+    @Transient
+    private String code;
 
 
     public UserModel() {
@@ -125,6 +131,13 @@ public class UserModel implements Serializable {
         isDel = del;
     }
 
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
 
     @Override
     public String toString() {

@@ -14,11 +14,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import tv.lycam.sdk.NotificationRoomManager;
 import tv.lycam.sdk.api.KurentoClientProvider;
+import tv.lycam.server.api.config.JwtFilter;
 import tv.lycam.server.api.storage.StorageProperties;
 import tv.lycam.server.api.storage.StorageService;
 import tv.lycam.server.kms.FixedNKmsManager;
@@ -134,20 +136,33 @@ public class RoomServerApplication implements JsonRpcConfigurer {
 
 
 
+	@Bean
+    public CCPRestSmsSDK ccpRestSmsSDK() {
+        CCPRestSmsSDK ccpRestSmsSDK = new CCPRestSmsSDK();
+        ccpRestSmsSDK.init("sandboxapp.cloopen.com", "8883");
+        ccpRestSmsSDK.setAccount("aaf98f8952305ced015230f21a4001ca", "b4cf071f95c442daab536985b590e1bb");
+        ccpRestSmsSDK.setAppId("aaf98f8952305ced015230f7237b0203");
+        return ccpRestSmsSDK;
+    }
+
+
     @Bean
-    CommandLineRunner init(CCPRestSmsSDK ccpRestSmsSDK, StorageService storageService) {
+    CommandLineRunner init(StorageService storageService) {
         return (args) -> {
-
-            System.out.println("88888");
-            ccpRestSmsSDK.init("sandboxapp.cloopen.com", "8883");
-            ccpRestSmsSDK.setAccount("aaf98f8952305ced015230f21a4001ca", "b4cf071f95c442daab536985b590e1bb");
-            ccpRestSmsSDK.setAppId("aaf98f8952305ced015230f7237b0203");
-
 
             // File init
             //storageService.deleteAll();
             storageService.init();
         };
+    }
+
+
+    @Bean
+    public FilterRegistrationBean jwtFilter() {
+        final FilterRegistrationBean registrationBean = new FilterRegistrationBean();
+        registrationBean.setFilter(new JwtFilter());
+        registrationBean.addUrlPatterns("/meeting/*");
+        return registrationBean;
     }
 
 
