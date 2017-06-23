@@ -159,7 +159,7 @@ function Participants() {
             updateMainParticipant(participant);
         });
 
-        //updateMainParticipant(participant);
+        //updateMainParticipant(contact);
 
         return participant;
     };
@@ -186,7 +186,7 @@ function Participants() {
         		otherLocal = localParticipant;
         	}
         	if (otherLocal) {
-        		console.log("Removed local participant (or mirror) so removing the other local as well");
+        		console.log("Removed local contact (or mirror) so removing the other local as well");
         		delete participants[otherLocal.getStream().getGlobalID()];
         		otherLocal.remove();
         	}

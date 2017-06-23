@@ -51,7 +51,7 @@ public class NotificationRoomManager {
      * with a {@link DefaultKurentoClientSessionInfo} bean as implementation of the
      * {@link KurentoClientSessionInfo}.
      *
-     * @param request instance of {@link ParticipantRequest} POJO containing the participant's id
+     * @param request instance of {@link ParticipantRequest} POJO containing the contact's id
      *                and a
      *                request id (optional identifier of the request at the communications level,
      *                included
@@ -243,11 +243,11 @@ public class NotificationRoomManager {
         try {
             if (!internalManager.getParticipantName(request.getParticipantId()).equals(userName)) {
                 throw new RoomException(Code.USER_NOT_FOUND_ERROR_CODE,
-                        "Provided username '" + userName + "' differs from the participant's name");
+                        "Provided username '" + userName + "' differs from the contact's name");
             }
             if (!internalManager.getRoomName(request.getParticipantId()).equals(roomName)) {
                 throw new RoomException(Code.ROOM_NOT_FOUND_ERROR_CODE,
-                        "Provided room name '" + roomName + "' differs from the participant's room");
+                        "Provided room name '" + roomName + "' differs from the contact's room");
             }
             notificationRoomHandler.onSendMessage(request, message, userName, roomName,
                     internalManager.getParticipants(roomName), null);
@@ -326,7 +326,7 @@ public class NotificationRoomManager {
     }
 
     /**
-     * Application-originated request to remove a participant from the room. <br/>
+     * Application-originated request to remove a contact from the room. <br/>
      * <strong>Side effects:</strong> The room event handler should notify the user that she has been
      * evicted. Should also send notifications to all other participants about the one that's just
      * been evicted.

@@ -6,7 +6,7 @@ package tv.lycam.server.rpc;
  */
 public class ParticipantSession {
 
-    public static final String SESSION_KEY = "participant";
+    public static final String SESSION_KEY = "contact";
 
     private String participantName;
     private String roomName;

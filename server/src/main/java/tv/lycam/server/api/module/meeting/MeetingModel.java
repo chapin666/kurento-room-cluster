@@ -1,7 +1,9 @@
 package tv.lycam.server.api.module.meeting;
 
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import tv.lycam.server.api.module.comm.ValidateGroup;
 import tv.lycam.server.api.module.user.UserModel;
 
 import java.io.Serializable;
@@ -16,10 +18,13 @@ public class MeetingModel implements Serializable {
     @Id
     private String id;
 
+    @NotBlank(message = "会议名称不能为空")
     private String title;
 
+    @NotBlank(message = "创建者不能为空", groups = {ValidateGroup.MeetingGroup.class})
     private UserModel creator;
 
+    @NotBlank(message = "会议类型不能为空")
     private String type;
 
     private String password;
@@ -30,11 +35,11 @@ public class MeetingModel implements Serializable {
 
     private String durationTime;
 
-    private boolean enableJoin;
+    private boolean enableJoin = false;
 
     private String delTime;
 
-    private boolean isDelete;
+    private boolean isDelete = false;
 
     private String status;
 

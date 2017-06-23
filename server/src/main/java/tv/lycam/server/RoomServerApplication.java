@@ -161,7 +161,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     public FilterRegistrationBean jwtFilter() {
         final FilterRegistrationBean registrationBean = new FilterRegistrationBean();
         registrationBean.setFilter(new JwtFilter());
-        registrationBean.addUrlPatterns("/meeting/*");
+        registrationBean.addUrlPatterns("/test/*");
         return registrationBean;
     }
 

@@ -15,7 +15,7 @@ public interface NotificationRoomHandler extends RoomHandler {
     /**
      * Called as a result of
      * {@link NotificationRoomManager#joinRoom(String, String, ParticipantRequest)} . The new
-     * participant should be responded with all the available information: the existing peers and, for
+     * contact should be responded with all the available information: the existing peers and, for
      * any publishers, their stream names. The current peers should receive a notification of the join
      * event.
      *
@@ -196,7 +196,7 @@ public interface NotificationRoomHandler extends RoomHandler {
 
     /**
      * Called as a result of {@link NotificationRoomManager#evictParticipant(String)} -
-     * application-originated method, not as a consequence of a client request. The participant should
+     * application-originated method, not as a consequence of a client request. The contact should
      * be notified so that the client-side application would terminate gracefully.
      *
      * @param participant

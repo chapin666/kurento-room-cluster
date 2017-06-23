@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tv.lycam.sdk.HazelcastConfiguration;
 import tv.lycam.server.RoomJsonRpcHandler;
+import tv.lycam.server.api.module.comm.BaseController;
 import tv.lycam.server.api.response.ResponseModel;
 import tv.lycam.server.api.storage.StorageService;
 import tv.lycam.server.api.utils.RandomUtils;
@@ -30,7 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 
 @RestController
 @RequestMapping("/user")
-public class UserController {
+public class UserController extends BaseController {
 
     private  static final Logger log = LoggerFactory.getLogger(RoomJsonRpcHandler.class);
 
@@ -62,8 +63,7 @@ public class UserController {
 
         String number = RandomUtils.getRandNum(6);
 
-        HashMap<String, Object> result = this.ccpRestSmsSDK
-                .sendTemplateSMS(phone, "98425", new String[]{number, "2分钟"});
+        HashMap<String, Object> result = this.ccpRestSmsSDK.sendTemplateSMS(phone, "184334", new String[]{number, "2分钟"});
 
 
         if("000000".equals(result.get("statusCode"))){
@@ -176,12 +176,6 @@ public class UserController {
                 .signWith(SignatureAlgorithm.HS256, "secretkey").compact();
 
         return ResponseEntity.ok(new ResponseModel<>(true, null, jwtToken));
-    }
-
-
-    private ResponseEntity sendValidateError(BindingResult bindingResult) {
-        String err = bindingResult.getFieldError().getDefaultMessage();
-        return ResponseEntity.ok(new ResponseModel<>(err));
     }
 
 

@@ -38,7 +38,7 @@ public interface UserNotificationService {
      * (client requests - sdk answers) so there's no need for a request identifier.
      *
      * @param participantId
-     *          identifier of the targeted participant
+     *          identifier of the targeted contact
      * @param method
      *          String with the name of the method or event to be invoked on the client
      * @param params
@@ -49,7 +49,7 @@ public interface UserNotificationService {
 
     /**
      * Notifies that any information associated with the provided request should be cleaned up (the
-     * participant has left).
+     * contact has left).
      *
      * @param participantRequest
      *          instance of {@link ParticipantRequest} POJO

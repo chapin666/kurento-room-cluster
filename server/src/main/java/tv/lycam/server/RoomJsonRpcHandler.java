@@ -124,7 +124,7 @@ public class RoomJsonRpcHandler extends DefaultJsonRpcHandler<JsonObject> {
             ps = (ParticipantSession) session.getAttributes().get(ParticipantSession.SESSION_KEY);
         }
         String sid = session.getSessionId();
-        log.debug("CONN_CLOSED: sessionId={}, participant in session: {}", sid, ps);
+        log.debug("CONN_CLOSED: sessionId={}, contact in session: {}", sid, ps);
         ParticipantRequest preq = new ParticipantRequest(sid, null);
         updateThreadName(sid + "| ws closed");
         userControl.leaveRoom(null, null, preq);

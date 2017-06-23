@@ -147,7 +147,7 @@ public class JsonRpcUserControl {
         }
 
         if (roomName == null) {
-            log.warn("No room information found for participant with session Id {}. "
+            log.warn("No room information found for contact with session Id {}. "
                 + "Using the admin method to evict the user. ", pid);
             leaveRoomAfterConnClosed(pid);
         } else {
@@ -180,7 +180,7 @@ public class JsonRpcUserControl {
 
         try {
             roomManager.evictParticipant(sessionId);
-            log.info("Evict participant with sessionId {}", sessionId);
+            log.info("Evict contact with sessionId {}", sessionId);
         } catch (RoomException e) {
             log.warn("Unable to evict : {}", e.getMessage());
             log.trace("unable to evict user", e);

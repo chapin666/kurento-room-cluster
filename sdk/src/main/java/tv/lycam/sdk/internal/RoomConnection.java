@@ -122,7 +122,7 @@ public class RoomConnection {
             roomHandler.updateFilter(this.room.getRoomName(), participant, filterId, state);
         });
 
-        log.info("ROOM {}: Added participant {}", this.room.getRoomName(), userParticipant.getUserName());
+        log.info("ROOM {}: Added contact {}", this.room.getRoomName(), userParticipant.getUserName());
     }
 
     public void newPublisher(Participant participant) {

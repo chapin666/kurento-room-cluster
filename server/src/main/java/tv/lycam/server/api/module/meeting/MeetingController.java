@@ -1,11 +1,11 @@
 package tv.lycam.server.api.module.meeting;
 
-import io.netty.handler.codec.http.HttpResponse;
-import org.apache.http.HttpEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import tv.lycam.server.api.module.comm.BaseController;
 import tv.lycam.server.api.response.ResponseModel;
 
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/meeting")
-public class MeetingController {
+public class MeetingController extends BaseController {
 
 
     @Autowired
@@ -28,7 +28,12 @@ public class MeetingController {
      * @return
      */
     @PostMapping
-    public ResponseEntity createMeeting(@RequestBody MeetingModel model) {
+    public ResponseEntity createMeeting(
+            @RequestBody @Validated MeetingModel model,
+            BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            return sendValidateError(bindingResult);
+        }
         MeetingModel meetingModel = meetingRepository.insert(model);
         return ResponseEntity.ok(new ResponseModel<>(meetingModel));
     }
@@ -45,15 +50,31 @@ public class MeetingController {
     }
 
 
+
+    @GetMapping("/{meetingId}")
+    public ResponseEntity find(@PathVariable String meetingId) {
+
+        MeetingModel meetingModel = meetingRepository.findOne(meetingId);
+
+        if (meetingModel != null) {
+            return ResponseEntity.ok(new ResponseModel<>(meetingModel));
+        } else {
+            return ResponseEntity.ok(new ResponseModel<>("没有查询到该会议"));
+        }
+
+    }
+
+
     /**
      *
      * @return
      */
     @GetMapping
-    public ResponseEntity meetings() {
+    public ResponseEntity list() {
         List<MeetingModel> meetingModelList = meetingRepository.findAll();
         return ResponseEntity.ok(new ResponseModel<>(meetingModelList));
     }
+
 
 
     @DeleteMapping("/{meetingId}")

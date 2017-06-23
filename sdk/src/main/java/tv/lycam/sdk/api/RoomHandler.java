@@ -16,7 +16,7 @@ public interface RoomHandler {
      * to the remote WebRTC peer.
      *
      * @param roomName      name of the room
-     * @param participantId identifier of the participant
+     * @param participantId identifier of the contact
      * @param endpoint      String the identifier of the local WebRTC endpoint (created in the sdk)
      * @param candidate     the gathered {@link IceCandidate}
      */
@@ -24,11 +24,11 @@ public interface RoomHandler {
                         IceCandidate candidate);
 
     /**
-     * Called as a result of an error intercepted on a media element of a participant. The participant
+     * Called as a result of an error intercepted on a media element of a contact. The contact
      * should be notified.
      *
      * @param roomName         name of the room
-     * @param participantId    identifier of the participant
+     * @param participantId    identifier of the contact
      * @param errorDescription description of the error
      */
     void onMediaElementError(String roomName, String participantId, String errorDescription);
@@ -44,7 +44,7 @@ public interface RoomHandler {
     void onPipelineError(String roomName, Set<String> participantIds, String errorDescription);
 
     /**
-     * Called when a new participant joins the conference and there are filters configured
+     * Called when a new contact joins the conference and there are filters configured
      *
      * @param roomName
      * @param participant
