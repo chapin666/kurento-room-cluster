@@ -49,7 +49,10 @@ public class UserController extends BaseController {
     private final ConcurrentMap<String, SMSModel> SMSDB;
 
 
-
+    /**
+     *
+     * @param storageService
+     */
     @Autowired
     public UserController(StorageService storageService) {
         this.storageService = storageService;
@@ -58,6 +61,11 @@ public class UserController extends BaseController {
     }
 
 
+    /**
+     *
+     * @param phone
+     * @return
+     */
     @RequestMapping("/send_sms/{phone}")
     public ResponseEntity smsSend(@PathVariable("phone")String phone) {
 
@@ -87,6 +95,37 @@ public class UserController extends BaseController {
 
     /**
      *
+     * @param model
+     * @return
+     */
+    @PostMapping("/check_sms")
+    public ResponseEntity checkSms(@RequestBody UserModel model) {
+
+        String phone = model.getPhone();
+        String code = model.getCode();
+
+        if (phone == null) {
+            return ResponseEntity.ok(new ResponseModel<>("参数：手机号码不能为空"));
+        }
+
+        if (code == null) {
+            return ResponseEntity.ok(new ResponseModel<>("参数：验证码不能为空"));
+        }
+
+        SMSModel sms = this.SMSDB.get(phone);
+        if (sms == null) {
+            return ResponseEntity.ok(new ResponseModel<>("验证码错误"));
+        }
+
+        if (!code.equals(sms.getCode())) {
+            return ResponseEntity.ok(new ResponseModel<>("验证码错误"));
+        }
+
+        return ResponseEntity.ok(new ResponseModel<>(true, null, "验货码匹配成功"));
+    }
+
+    /**
+     *
      * @param userModel
      * @return
      */
@@ -102,23 +141,11 @@ public class UserController extends BaseController {
 
 
         String phone = userModel.getPhone();
-        String code = userModel.getCode();
-
         UserModel m = userRepository.findByPhone(phone);
-
         if (m != null) {
             return ResponseEntity.ok(new ResponseModel<>("该手机号已注册"));
         }
 
-
-        SMSModel sms = this.SMSDB.get(phone);
-        if (sms == null || code == null) {
-            return ResponseEntity.ok(new ResponseModel<>("请获取验证码"));
-        }
-
-        if (!code.equals(sms.getCode())) {
-            return ResponseEntity.ok(new ResponseModel<>("验证码错误"));
-        }
 
         // upload avatar
         String fileName = null;
