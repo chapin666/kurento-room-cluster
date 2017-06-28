@@ -22,7 +22,7 @@ public class AttachmentController extends BaseController {
 
 
     /**
-     *
+     * 添加文件
      * @param model
      * @return
      */
@@ -44,8 +44,12 @@ public class AttachmentController extends BaseController {
     }
 
 
-
-
+    /**
+     *
+     * 列表所有文件
+     *
+     * @return
+     */
     @GetMapping
     public ResponseEntity list() {
         List<AttachmentModel> list = attachmentRepository.findAll();
@@ -53,10 +57,34 @@ public class AttachmentController extends BaseController {
     }
 
 
+    /**
+     *
+     * 通过用户id查询文件列表
+     *
+     * @param userId
+     * @return
+     */
     @GetMapping("/{user_id}")
     public ResponseEntity listByUser(@PathVariable("user_id") String userId) {
         List<AttachmentModel> list =  attachmentRepository.findByCreateUserId(userId);
         return ResponseEntity.ok(new ResponseModel<>(list));
+    }
+
+
+    /**
+     *
+     * 更新文件记录
+     *
+     * @return
+     */
+    @PutMapping("/{attachment_id}")
+    public ResponseEntity update(@PathVariable("attachment_id") String attachmentId,
+                                 @RequestBody AttachmentModel model) {
+        AttachmentModel attachmentModel = attachmentRepository.save(model);
+        if (attachmentModel == null) {
+            return ResponseEntity.ok(new ResponseModel<>("修改文件错误"));
+        }
+        return ResponseEntity.ok(new ResponseModel<>(attachmentModel));
     }
 
 
