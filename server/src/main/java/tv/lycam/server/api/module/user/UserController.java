@@ -1,8 +1,10 @@
 package tv.lycam.server.api.module.user;
 
 import com.cloopen.rest.sdk.CCPRestSmsSDK;
+import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
@@ -20,9 +22,7 @@ import tv.lycam.server.api.response.ResponseModel;
 import tv.lycam.server.api.storage.StorageService;
 import tv.lycam.server.api.utils.RandomUtils;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -48,6 +48,8 @@ public class UserController extends BaseController {
 
     private final ConcurrentMap<String, SMSModel> SMSDB;
 
+    private final IMap<String, Object> TokenDB;
+
 
     /**
      *
@@ -58,6 +60,7 @@ public class UserController extends BaseController {
         this.storageService = storageService;
         this.hazelcastInstance = Hazelcast.getOrCreateHazelcastInstance(HazelcastConfiguration.config());
         this.SMSDB = this.hazelcastInstance.getMap("sms");
+        this.TokenDB = this.hazelcastInstance.getMap("token");
     }
 
 
@@ -193,14 +196,23 @@ public class UserController extends BaseController {
             return ResponseEntity.ok(new ResponseModel<>("该手机号不存在"));
         }
 
-        System.out.println(model.getPassword());
-
         if (!password.equals(model.getPassword())) {
             return ResponseEntity.ok(new ResponseModel<>("密码错误"));
         }
 
-        jwtToken = Jwts.builder().setSubject(phone).claim("roles", "user").setIssuedAt(new Date())
-                .signWith(SignatureAlgorithm.HS256, "secretkey").compact();
+        Calendar calendar = Calendar.getInstance();
+        Date now = calendar.getTime();
+        calendar.add(Calendar.HOUR, 24 * 7);
+        Date expiresTime = calendar.getTime();
+
+
+        this.TokenDB.put(phone, phone);
+        jwtToken = Jwts
+                    .builder()
+                    .setClaims(this.TokenDB)
+                    .setIssuedAt(now)
+                    .signWith(SignatureAlgorithm.HS256, "secretkey")
+                    .compact();
 
         return ResponseEntity.ok(new ResponseModel<>(true, null, jwtToken));
     }

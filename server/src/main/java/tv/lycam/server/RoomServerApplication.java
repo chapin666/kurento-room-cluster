@@ -2,6 +2,7 @@ package tv.lycam.server;
 
 import com.cloopen.rest.sdk.CCPRestSmsSDK;
 import com.google.gson.JsonArray;
+import com.hazelcast.config.Config;
 import org.kurento.commons.ConfigFileManager;
 import org.kurento.jsonrpc.JsonUtils;
 import org.kurento.jsonrpc.internal.server.config.JsonRpcConfiguration;
@@ -18,6 +19,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import tv.lycam.sdk.HazelcastConfiguration;
 import tv.lycam.sdk.NotificationRoomManager;
 import tv.lycam.sdk.api.KurentoClientProvider;
 import tv.lycam.server.api.config.JwtFilter;
@@ -110,6 +112,7 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     }
 
 
+
     @Override
     public void registerJsonRpcHandlers(JsonRpcHandlerRegistry jsonRpcHandlerRegistry) {
         jsonRpcHandlerRegistry.addHandler(roomHandler().withPingWatchdog(true), "/room");
@@ -157,14 +160,13 @@ public class RoomServerApplication implements JsonRpcConfigurer {
     }
 
 
+
     @Bean
     public FilterRegistrationBean jwtFilter() {
         final FilterRegistrationBean registrationBean = new FilterRegistrationBean();
         registrationBean.setFilter(new JwtFilter());
-        registrationBean.addUrlPatterns("/test/*");
+        registrationBean.addUrlPatterns("/contact/*");
         return registrationBean;
     }
-
-
 
 }

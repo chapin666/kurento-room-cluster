@@ -1,9 +1,11 @@
 package tv.lycam.sdk.api.pojo;
 
+import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
 import com.hazelcast.nio.serialization.DataSerializable;
+import org.springframework.beans.factory.annotation.Autowired;
 import tv.lycam.sdk.HazelcastConfiguration;
 
 import java.io.IOException;
@@ -32,6 +34,9 @@ public class Room implements DataSerializable {
         this.roomName = roomName;
     }
 
+    @Autowired
+    private Config config;
+
 
 
     @Override
@@ -47,7 +52,7 @@ public class Room implements DataSerializable {
 
     public Collection<UserParticipant> getParticipants() {
         ConcurrentMap<String, UserParticipant> participants =
-                Hazelcast.getOrCreateHazelcastInstance(HazelcastConfiguration.config()).getMap("participants");
+                Hazelcast.getOrCreateHazelcastInstance(config).getMap("participants");
         Collection<UserParticipant> tmps = new ArrayList<>();
         for (UserParticipant entry: participants.values()) {
             if (entry.getRoomName().equals(this.roomName)) {

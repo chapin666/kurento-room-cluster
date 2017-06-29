@@ -1,10 +1,12 @@
 package tv.lycam.sdk.internal;
 
+import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import tv.lycam.sdk.HazelcastConfiguration;
 import tv.lycam.sdk.api.RoomHandler;
 import tv.lycam.sdk.api.pojo.Room;
@@ -59,6 +61,7 @@ public class RoomConnection {
     private boolean destroyKurentoClient;
 
     private final ConcurrentHashMap<String, String> filterStates = new ConcurrentHashMap<>();
+
 
 
     public RoomConnection() {}

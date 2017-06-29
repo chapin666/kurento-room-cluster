@@ -1,10 +1,12 @@
 package tv.lycam.sdk;
 
+import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import tv.lycam.sdk.api.KurentoClientProvider;
 import tv.lycam.sdk.api.KurentoClientSessionInfo;
 import tv.lycam.sdk.api.MutedMediaType;
@@ -42,6 +44,7 @@ public class RoomManager {
 
 
     private volatile boolean closed = false;
+
 
     /**
      * Provides an instance of the room manager by setting a room handler and the
